@@ -1,0 +1,73 @@
+命令： cat /proc/pid/maps
+查看进程的虚拟地址空间是如何使用的。
+该文件有6列，分别为：
+地址：库在进程里地址范围
+权限：虚拟内存的权限，r=读，w=写,x=,s=共享,p=私有；
+偏移量：库在进程里地址范围
+设备：映像文件的主设备号和次设备号；
+节点：映像文件的节点号；
+路径: 映像文件的路径
+每项都与一个vm_area_struct结构成员对应
+
+C语言代码
+
+#include <stdio.h>  
+#include <stdlib.h>         
+int q[200];         
+int main(void)  {    
+int i, n, *p;    
+p = (int *) malloc(sizeof(int));    
+scanf("%d", &n);    
+for (i=0; i<200; i++)      
+q[i]=i;               
+printf("%x %x %x %x %x \n", main, q, p, &i, scanf);             
+return 0;         
+}
+ 
+ 编译成a.out文件
+
+执行该文件
+
+#./a.out
+
+查看执行该文件对应的进程
+
+#ps au
+
+可以看到2200就是我们需要的pid
+
+#cat /proc/2200/maps
+
+
+参数 解释
+address: 0085d000-00872000 虚拟内存区域的起始和终止地址文件所占的地址空间
+perms:rw-p 权限：r=read, w=write, x=execute, s=shared, p=private(copy on write)
+offset: 00000000 虚拟内存区域在被映射文件中的偏移量
+dev: 03:08 文件的主设备号和次设备号
+inode: 设备的节点号，0表示没有节点与内存相对应
+name: /lib/ld-2.2.12.so 被映射文件的文件名
+各共享库的代码段，存放着二进制可执行的机器指令，是由kernel把该库ELF文件的代码段map到虚存空间；
+各共享库的数据段，存放着程序执行所需的全局变量，是由kernel把ELF文件的数据段map到虚存空间；
+用户代码段，存放着二进制形式的可执行的机器指令，是由kernel把ELF文件的代码段map到虚存空间；
+用户数据段之上是代码段，存放着程序执行所需的全局变量，是由kernel把ELF文件的数据段map到虚存空间；
+用户数据段之下是堆(heap)，当且仅当malloc调用时存在，是由kernel把匿名内存map到虚存空间，堆则在程序中没有调用malloc的情况下不存在；
+用户数据段之下是栈(stack)，作为进程的临时数据区，是由kernel把匿名内存map到虚存空间，栈空间的增长方向是从高地址到低地址。
+
+
+#cat /proc/2200/statm
+499 96 83 1 0 62 0
+
+很简单地返回7组数字，每一个的单位都是一页 （常见的是4KB）
+分别是
+size:任务虚拟地址空间大小
+Resident：正在使用的物理内存大小
+Shared：共享页数
+Trs：程序所拥有的可执行虚拟内存大小
+Lrs：被映像倒任务的虚拟内存空间的库的大小
+Drs：程序数据段和用户态的栈的大小
+dt：脏页数量
+
+查看根进程
+#cat /proc/1/statm
+
+详情参考  https://blog.csdn.net/unix21/article/details/8450042
